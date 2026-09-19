@@ -1,0 +1,20 @@
+# Project place file
+/UIOne.rbxlx
+
+# Roblox Studio lock files
+/*.rbxlx.lock
+/*.rbxl.lock
+
+# Packages downloaded by Wally
+/Packages/
+
+# Generated Rojo metadata
+sourcemap.json
+
+# macOS metadata
+.DS_Store
+
+# Local secrets
+.env
+.env.*
+!.env.example
