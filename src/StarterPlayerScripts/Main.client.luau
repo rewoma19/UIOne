@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
 local StarterGui = game:GetService("StarterGui")
 
 local Vide = require(ReplicatedStorage.Packages.Vide)
@@ -11,11 +12,18 @@ local mount = Vide.mount
 local source = Vide.source
 
 local HealthMeter = require(ReplicatedStorage.UI.HealthMeter)
+local SettingsUI = require(ReplicatedStorage.UI.SettingsUI)
 
 local player = Players.LocalPlayer
 
 -- This can yield, so do it before entering Vide's mounted stable scope.
 local playerGui = player:WaitForChild("PlayerGui")
+
+-- Resolve replicated audio groups before entering Vide's non-yielding scope.
+local effectsGroup = SoundService:WaitForChild("Effects")
+local backgroundGroup = SoundService:WaitForChild("Background")
+assert(effectsGroup:IsA("SoundGroup"), "SoundService.Effects must be a SoundGroup")
+assert(backgroundGroup:IsA("SoundGroup"), "SoundService.Background must be a SoundGroup")
 
 -- Prevent Roblox's default health meter from overlapping ours.
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
@@ -28,6 +36,18 @@ local function App(): ScreenGui
 	-- The visible data starts empty until a Humanoid is found.
 	local health = source(0)
 	local maxHealth = source(100)
+
+	-- These preferences belong to the App, so they survive character respawns.
+	local effectsVolume = source(math.clamp(effectsGroup.Volume, 0, 1))
+	local backgroundVolume = source(math.clamp(backgroundGroup.Volume, 0, 1))
+
+	-- Keep audio changes here so the settings UI also works in a silent story.
+	effect(function()
+		effectsGroup.Volume = effectsVolume()
+	end)
+	effect(function()
+		backgroundGroup.Volume = backgroundVolume()
+	end)
 
 	-- These root-level connections live as long as this mounted App.
 	cleanup(player.CharacterAdded:Connect(function(newCharacter)
@@ -118,6 +138,17 @@ local function App(): ScreenGui
 			HealthMeter({
 				health = health,
 				maxHealth = maxHealth,
+			}),
+
+			SettingsUI({
+				effectsVolume = effectsVolume,
+				backgroundVolume = backgroundVolume,
+				onEffectsChanged = function(value)
+					effectsVolume(math.clamp(value, 0, 1))
+				end,
+				onBackgroundChanged = function(value)
+				backgroundVolume(math.clamp(value, 0, 1))
+				end,
 			}),
 		}),
 	})
